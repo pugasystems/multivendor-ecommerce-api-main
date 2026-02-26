@@ -126,6 +126,15 @@ npm run test:e2e
 npm run test:cov
 ```
 
+## Production
+
+| Resource | URL |
+|---|---|
+| **Live API** | https://api.getbizzusa.com |
+| **Swagger Docs** | https://api.getbizzusa.com/api |
+
+Served via Nginx reverse proxy → `localhost:5000`
+
 ## License
 
 Private — All rights reserved © GetBizUSA
