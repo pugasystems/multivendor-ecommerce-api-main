@@ -62,7 +62,7 @@ docker-compose up --build
 Once running, Swagger docs are available at:
 
 ```
-http://localhost:3001/api
+http://localhost:5000/api
 ```
 
 ## Project Structure
