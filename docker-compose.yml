@@ -1,0 +1,41 @@
+version: '3.8'
+services:
+  redis-getbizzusa:
+    image: redis:latest
+    container_name: redis-auth
+    ports:
+      - '6380:6379'
+    expose:
+      - '6380'
+    networks:
+      - getbizzusa
+
+  mysql-getbizzusa:
+    image: mysql:latest
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: getbizzusa
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql-getbizzusa-data:/var/lib/mysql
+    networks:
+      - getbizzusa
+    container_name: mysql-getbizzusa
+
+  getbizzusa:
+    build:
+      context: .
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    networks:
+      - getbizzusa
+    container_name: getbizzusa
+
+networks:
+  getbizzusa:
+    driver: bridge
+
+volumes:
+  mysql-getbizzusa-data: {}

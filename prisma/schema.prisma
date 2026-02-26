@@ -1,0 +1,351 @@
+generator client {
+  provider = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum VerificationType {
+  registration
+  forgotPassword
+  verifyEmailChange
+}
+
+enum VendorStatus {
+  trial
+  active
+  inactive
+}
+
+enum PaymentStatus {
+  paid
+  unpaid
+  due
+}
+
+model Role {
+  @@map("roles")
+  id Int @id @default(autoincrement())
+  name String @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User[]
+}
+
+model User {
+  @@map("users")
+  id Int @id @default(autoincrement())
+  firstName String @db.VarChar(100)
+  middleName String? @db.VarChar(100)
+  lastName String  @db.VarChar(100)
+  email String? @db.VarChar(100)
+  mobileNumber String? @unique @db.VarChar(20)
+  password String
+  isActive Boolean @default(false)
+  hasVerified Boolean @default(false)
+  verifiedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  roleId Int?
+  role Role? @relation(fields: [roleId], references: [id], onDelete: SetNull)
+  verificationCode VerificationCode[]
+  userAddresses UserAddress[]
+  vendors Vendor[]
+  leads Lead[]
+  senderChats Chat[] @relation("sender")
+  recipientChats Chat[] @relation("recipient")
+}
+
+model VerificationCode {
+  @@map("verification_codes")
+
+  id Int @id @default(autoincrement())
+  verificationCode Int @db.UnsignedInt()
+  type VerificationType
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  userId Int
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Subscription {
+  @@map("subscriptions")
+
+  id Int @id @default(autoincrement())
+  name String @unique @db.VarChar(100)
+  price Float @default(0)
+  leadsCount Int @default(0)
+  description String @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  vendors SubscriptionOnVendor[]
+  attributes SubscriptionAttribute[]
+  items SubscriptionItem[]
+}
+
+model BusinessCategory {
+  @@map("business_categories")
+
+  id Int @id @default(autoincrement())
+  name String @unique @db.VarChar(100)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  vendors Vendor[]
+  categories Category[]
+}
+
+model Country {
+  @@map("countries")
+
+  id Int @id @default(autoincrement())
+  name String @unique @db.VarChar(50)
+  abbreviation String? @db.VarChar(5)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  states State[]
+  userAddresses UserAddress[]
+}
+
+model State {
+  @@map("states")
+
+  id Int @id @default(autoincrement())
+  name String @unique @db.VarChar(50)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  countryId Int
+  country Country @relation(fields: [countryId], references: [id], onDelete: Cascade)
+  districts District[]
+  cities City[]
+  userAddresses UserAddress[]
+  vendor Vendor[]
+}
+
+model District {
+  @@map("districts")
+
+  id Int @id @default(autoincrement())
+  name String @db.VarChar(50)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  stateId Int
+  state State @relation(fields: [stateId], references: [id], onDelete: Cascade)
+  cities City[]
+  userAddresses UserAddress[]
+}
+
+model City {
+  @@map("cities")
+
+  id Int @id @default(autoincrement())
+  name String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  stateId Int?
+  districtId Int?
+  district District? @relation(fields: [districtId], references: [id], onDelete: Cascade)
+  state State? @relation(fields: [stateId], references: [id], onDelete: Cascade)
+  userAddresses UserAddress[]
+}
+
+model UserAddress {
+  @@map("user_addresses")
+
+  id Int @id @default(autoincrement())
+  addressLineOne String @db.VarChar(100)
+  addressLineTwo String?
+  zipCode String?
+  isDefault Boolean @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  userId Int
+  countryId Int
+  stateId Int
+  districtId Int?
+  cityId Int
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  country Country @relation(fields: [countryId], references: [id], onDelete: Cascade)
+  state State @relation(fields: [stateId], references: [id], onDelete: Cascade)
+  district District? @relation(fields: [districtId], references: [id], onDelete: Cascade)
+  city City @relation(fields: [cityId], references: [id])
+  vendors Vendor[]
+}
+
+model Vendor{
+  @@map("vendors")
+
+  id Int @id @default(autoincrement())
+  name String
+  vendorStatus VendorStatus
+  paymentStatus PaymentStatus
+  leadsCount Int? @default(0)
+  leadsConsumed Int? @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  userId Int
+  userAddressId Int?
+  businessCategoryId Int?
+  taxId String?
+  registeredAt Int?
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userAddress UserAddress? @relation(fields: [userAddressId], references: [id], onDelete: SetNull)
+  businessCategory  BusinessCategory? @relation(fields: [businessCategoryId], references: [id], onDelete: SetNull)
+  registeredState State? @relation(fields: [registeredAt], references: [id], onDelete: SetNull)
+  products Product[]
+  categories CategoriesOnVendors[]
+  subscriptions SubscriptionOnVendor[]
+  leads Lead[]
+}
+
+model Category {
+  @@map("categories")
+
+  id Int @id @default(autoincrement())
+  name String @unique
+  imageUrl String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  businessCategoryId Int
+  parentCategoryId Int?
+  parentCategory Category? @relation("childCategories", fields: [parentCategoryId], references: [id], onDelete: SetNull)
+  categories Category[] @relation("childCategories")
+  businessCategory  BusinessCategory @relation(fields: [businessCategoryId], references: [id], onDelete: Cascade)
+  products Product[]
+  vendors CategoriesOnVendors[]
+}
+
+model Product {
+  @@map("products")
+
+  id Int @id @default(autoincrement())
+  name String
+  description String? @db.LongText
+  price Float @db.Float
+  quantity Int @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  categoryId Int?
+  vendorId Int
+  category Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  vendor Vendor @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  attributes ProductAttribute[]
+  images ProductImage[]
+  leads Lead[]
+}
+
+model ProductAttribute {
+  @@map("product_attributes")
+
+  id Int @id @default(autoincrement())
+  name String @db.VarChar(50)
+  value String @db.VarChar(100)
+  productId Int
+  Product  Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+}
+
+model ProductImage {
+  @@map("product_images")
+
+  id Int @id @default(autoincrement())
+  imageUrl String
+  productId Int
+  Product  Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+}
+
+model SubscriptionAttribute {
+  @@map("subscription_attributes")
+
+  id Int @id @default(autoincrement())
+  name String @db.VarChar(50)
+  value String
+  subscriptionId Int
+  subscription Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+}
+
+model SubscriptionItem {
+  @@map("subscription_items")
+
+  id Int @id @default(autoincrement())
+  text String
+  icon String?
+  tag String?
+  subscriptionId Int
+  subscription Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+}
+
+model CategoriesOnVendors {
+  @@map("categories_vendors")
+  vendor Vendor @relation(fields:[vendorId], references:[id], onDelete: Cascade)
+  vendorId Int
+  category Category @relation(fields:[categoryId], references:[id], onDelete: Cascade)
+  categoryId Int
+
+  @@id([vendorId, categoryId])
+}
+
+model SubscriptionOnVendor {
+  @@map("subscriptions_vendors")
+
+  vendor Vendor @relation(fields:[vendorId], references:[id], onDelete: Cascade)
+  vendorId Int
+  subscription Subscription @relation(fields:[subscriptionId], references:[id], onDelete: Cascade)
+  subscriptionId Int
+
+  @@id([vendorId, subscriptionId])
+}
+
+model Lead {
+  @@map("leads")
+
+  id Int @id @default(autoincrement())
+  userId Int?
+  productId Int?
+  description String? @db.Text
+  requiredUnits Int
+  vendorId Int?
+  possibleOrderValue String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  businessCategoryId Int?
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+  product Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  vendor Vendor? @relation(fields: [vendorId], references: [id], onDelete: SetNull)
+}
+
+model NonRelevantLeads {
+  @@map("non_relevant_leads")
+  leadId Int
+  vendorId Int
+
+  @@id([leadId, vendorId])
+}
+
+model ShortlistedLeads {
+  @@map("shortlisted_leads")
+
+  leadId Int
+  vendorId Int
+
+  @@id([leadId, vendorId])
+}
+
+model Chat {
+  @@map("chats")
+
+  id Int @id @default(autoincrement())
+  senderUserId Int?
+  recipientUserId Int?
+  message String @db.LongText
+  readAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  sender User? @relation("sender", fields: [senderUserId], references: [id], onDelete: SetNull)
+  recipient User? @relation("recipient", fields: [recipientUserId], references: [id], onDelete: SetNull)
+}
